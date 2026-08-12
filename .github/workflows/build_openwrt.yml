@@ -1,0 +1,173 @@
+name: 🚀 编译 openwrt(Build openwrt)
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: "openWRT 仓库的拥有者 (Owner of openWRT repo)"
+        type: string
+        required: true
+        default: "VIKINGYFY"
+      repo:
+        description: "openWRT 仓库的名字 (Name of openWRT repo)"
+        type: string
+        required: true
+        default: "immortalwrt.git"
+      branch:
+        description: "openWRT 仓库的分支 (Branch of openWRT repo)"
+        type: string
+        required: true
+        default: "main"
+      multithreading:
+        description: "开启多线程编译 (Enable multithreading build)"
+        type: boolean
+        default: true
+      ssh:
+        description: "使用 ssh 连接到编译环境 (Connect to the build environment using ssh)"
+        type: boolean
+        default: true
+      isFiles:
+        description: "使用files大法 (Whether to upload the etc files)"
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: 🚀 编译 (Build)
+    steps:
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: "Optimize Disk Space"
+        uses: "hugoalh/disk-space-optimizer-ghaction@v0.8.1"
+        with:
+          operate_sudo: "True"
+          general_include: ".+"
+          general_exclude: |-
+            ^GCC$
+            ^G\+\+$
+            Clang
+            LLVM
+          docker_include: ".+"
+          docker_prune: "True"
+          docker_clean: "True"
+          apt_prune: "True"
+          apt_clean: "True"
+          homebrew_prune: "True"
+          homebrew_clean: "True"
+          npm_prune: "True"
+          npm_clean: "True"
+          os_swap: "True"
+
+      - name: Freeing up disk space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 3072
+          swap-size-mb: 1
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
+
+      - name: Free up disk space complete
+        run: |
+          echo "Free up disk space complete"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
+      - name: 下载编译所需的依赖 (Install the software packages required for compilation)
+        run: |
+          # 1️⃣ 将临时目录指向 Runner 主磁盘，避开 /tmp tmpfs 限制
+          export TMPDIR=$RUNNER_TEMP
+          sudo mkdir -p $TMPDIR
+          # 2️⃣ 彻底清理 APT 缓存与包列表（释放 Inode 和残留空间）
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo rm -rf /var/cache/apt/*
+          # 3️⃣ 更新源（CI 环境通常不需要 full-upgrade，耗时且易占满 Inode，建议注释）
+          # sudo apt-get full-upgrade -y
+          sudo apt-get update -y
+
+          sudo apt-get install -y --no-install-recommends ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+            bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext \
+            genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev \
+            libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool llvm lrzsz libnsl-dev ninja-build p7zip p7zip-full patch pkgconf \
+            python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion \
+            swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+
+          # 5️⃣ 安装后再次清理，防止后续步骤空间不足
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+      - name: 克隆当前仓库 (Clone current repo)
+        uses: actions/checkout@v4
+
+      - name: 克隆 openWRT 仓库 (Clone openWRT repo)
+        uses: actions/checkout@v4
+        with:
+          repository: "${{inputs.owner}}/${{inputs.repo}}"
+          ref: ${{inputs.branch}}
+          path: openWRT
+
+      - name: 复制当前仓库的配置文件到 openWRT 仓库  (Copy current repo config to openWRT repo)
+        run: cp -f owrt.config diy.sh openWRT/
+
+      - name: 如果选择了上传 files 大法，则复制 files 目录到 openWRT 仓库 (If you choose to upload the etc files, copy the etc directory to the openWRT repo)
+        if: ${{inputs.isFiles == true}}
+        run: cp -r files openWRT/files
+
+      - name: 运行 diy.sh (Run diy.sh)
+        working-directory: openWRT
+        run: |
+          chmod +x diy.sh
+          ./diy.sh
+
+      - name: 更新并下载 feeds (Update and download feeds)
+        working-directory: openWRT
+        run: ./scripts/feeds update -a && ./scripts/feeds install -a
+
+      - name: 使用ssh连接编译环境，限时15分钟，可在连接后输入命令 `touch /tmp/keepalive` 保活 (Connect to the build environment using ssh)
+        if: ${{inputs.ssh == true}}
+        uses: mxschmitt/action-tmate@v3
+
+      - name: 启用ssh生成了.config后在编译前上传配置(Upload config before build)
+        if: ${{inputs.ssh == true}}
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-before-build
+          path: |
+            openWRT/.config
+            openWRT/feeds.conf.default
+          include-hidden-files: true
+
+      - name: 再次复制当前仓库的配置文件到 openWRT 仓库  (Copy current repo config to openWRT repo)
+        if: ${{inputs.ssh == false}}
+        run: cp -f .config openWRT/
+
+      - name: 多线程download (Download openWRT multithreading)
+        working-directory: openWRT
+        run: make download -j$(nproc)
+
+      - name: 多线程编译 openWRT (Build openWRT multithreading)
+        if: ${{inputs.multithreading == true}}
+        working-directory: openWRT
+        run: make -j$(nproc) V=s
+
+      - name: 单线程编译 openWRT (Build openWRT single thread)
+        if: ${{inputs.multithreading == false}}
+        working-directory: openWRT
+        run: make -j1 V=s
+
+      - name: 上传编译结果到 Artifact (Upload build result to Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: openWRT-build-result
+          path: openWRT/bin/targets
