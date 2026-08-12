@@ -12,7 +12,7 @@ on:
         description: "openWRT 仓库的名字 (Name of openWRT repo)"
         type: string
         required: true
-        default: "immortalwrt.git"
+        default: "immortalwrt"
       branch:
         description: "openWRT 仓库的分支 (Branch of openWRT repo)"
         type: string
