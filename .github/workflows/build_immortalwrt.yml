@@ -25,11 +25,11 @@ on:
       ssh:
         description: "使用 ssh 连接到编译环境 (Connect to the build environment using ssh)"
         type: boolean
-        default: false
+        default: true
       isFiles:
         description: "使用files大法 (Whether to upload the etc files)"
         type: boolean
-        default: false
+        default: true
 
 jobs:
   build:
