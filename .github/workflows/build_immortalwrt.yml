@@ -12,7 +12,7 @@ on:
         description: "openWRT 仓库的名字 (Name of openWRT repo)"
         type: string
         required: true
-        default: "LibWrt"
+        default: "LiBwrt"
       branch:
         description: "openWRT 仓库的分支 (Branch of openWRT repo)"
         type: string
@@ -25,7 +25,7 @@ on:
       ssh:
         description: "使用 ssh 连接到编译环境 (Connect to the build environment using ssh)"
         type: boolean
-        default: true
+        default: false
       isFiles:
         description: "使用files大法 (Whether to upload the etc files)"
         type: boolean
@@ -119,7 +119,7 @@ jobs:
           path: openWRT
 
       - name: 复制当前仓库的配置文件到 openWRT 仓库  (Copy current repo config to openWRT repo)
-        run: cp -f 6600.config diy.sh openWRT/
+        run: cp -f .config diy.sh openWRT/
 
       - name: 如果选择了上传 files 大法，则复制 files 目录到 openWRT 仓库 (If you choose to upload the etc files, copy the etc directory to the openWRT repo)
         if: ${{inputs.isFiles == true}}
