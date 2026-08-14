@@ -8,7 +8,6 @@ sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_gener
 
 # 编辑默认的主题
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-sed -i 's/luci-theme-aurora/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 # 编辑默认的luci显示的固件名称
 #sed -i 's/OpenWrt/ZWRT/g' package/base-files/files/bin/config_generate
@@ -107,23 +106,8 @@ CONFIG_PACKAGE_luci-app-upnp=y
 CONFIG_PACKAGE_luci-app-zerotier=y
 CONFIG_PACKAGE_luci-theme-argon=y
 # ===== USB 硬盘必备 =====
-CONFIG_PACKAGE_kmod-usb-storage=y
-CONFIG_PACKAGE_kmod-usb-storage-uas=y
+
 CONFIG_PACKAGE_block-mount=y
-CONFIG_PACKAGE_kmod-fs-ext4=y
-CONFIG_PACKAGE_kmod-fs-ntfs3=y
-
-# ===== 4G 模块串口（AT/诊断口）=====
-CONFIG_PACKAGE_kmod-usb-serial=y
-CONFIG_PACKAGE_kmod-usb-serial-option=y
-CONFIG_PACKAGE_kmod-usb-serial-wwan=y
-
-# ===== QMI/MBIM 拨号（官方）=====
-CONFIG_PACKAGE_uqmi=y
-CONFIG_PACKAGE_umbim=y
-CONFIG_PACKAGE_luci-proto-qmi=y
-CONFIG_PACKAGE_luci-proto-mbim=y
-
 EOF
 
 
