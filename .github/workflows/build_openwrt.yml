@@ -119,17 +119,17 @@ jobs:
           path: openWRT
 
       - name: 复制当前仓库的配置文件到 openWRT 仓库  (Copy current repo config to openWRT repo)
-        run: cp -f .config diy.sh openWRT/
+        run: cp -f .config diy2.sh openWRT/
 
       - name: 如果选择了上传 files 大法，则复制 files 目录到 openWRT 仓库 (If you choose to upload the etc files, copy the etc directory to the openWRT repo)
         if: ${{inputs.isFiles == true}}
         run: cp -r files openWRT/files
 
-      - name: 运行 diy.sh (Run diy.sh)
+      - name: 运行 diy2.sh (Run diy2.sh)
         working-directory: openWRT
         run: |
-          chmod +x diy.sh
-          ./diy.sh
+          chmod +x diy2.sh
+          ./diy2.sh
 
       - name: 更新并下载 feeds (Update and download feeds)
         working-directory: openWRT
