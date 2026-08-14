@@ -99,25 +99,16 @@ CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-upnp=y
 CONFIG_PACKAGE_luci-app-zerotier=y
 CONFIG_PACKAGE_luci-theme-argon=y
+# 手机共享
+CONFIG_PACKAGE_usbmuxd=y
+CONFIG_PACKAGE_luci-proto-qmi=y
 
-# -------------------- USB 硬盘支持 --------------------
-CONFIG_PACKAGE_kmod-usb-storage=y
-CONFIG_PACKAGE_kmod-usb-storage-uas=y
+# USB 硬盘
 CONFIG_PACKAGE_block-mount=y
 CONFIG_PACKAGE_kmod-fs-ext4=y
-CONFIG_PACKAGE_kmod-fs-ntfs3=y
-
-# -------------------- 4G 模块串口 (AT/诊断口) --------------------
-CONFIG_PACKAGE_kmod-usb-serial=y
-CONFIG_PACKAGE_kmod-usb-serial-option=y
-CONFIG_PACKAGE_kmod-usb-serial-wwan=y
-
-# -------------------- QMI/MBIM 拨号 (官方) --------------------
-CONFIG_PACKAGE_uqmi=y
-CONFIG_PACKAGE_umbim=y
-CONFIG_PACKAGE_luci-proto-qmi=y
-CONFIG_PACKAGE_luci-proto-mbim=y
-
+CONFIG_PACKAGE_kmod-fs-vfat=y
+CONFIG_PACKAGE_ntfs-3g=y
+CONFIG_PACKAGE_hd-idle=y
 EOF
 
 echo "==> 执行 defconfig..."
