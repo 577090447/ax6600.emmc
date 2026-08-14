@@ -9,7 +9,7 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 
 # ========== 第三方插件 ==========
 # 注意：这里只声明 feed，不执行 git clone，避免冲突
-echo "src-git athena https://github.com/guangyin53222/AX6600-Athena-LED-Controller.git;v2.5.0" >> feeds.conf
+src-git athena https://github.com/guangyin53222/AX6600-Athena-LED-Controller.git;v2.5.0
 
 # ============================================================
 # iStore (应用商店)
