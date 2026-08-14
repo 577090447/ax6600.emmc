@@ -117,7 +117,7 @@ CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-upnp=y
 CONFIG_PACKAGE_luci-app-zerotier=y
-
+CONFIG_PACKAGE_luci-theme-argon=y
 EOF
 
 
