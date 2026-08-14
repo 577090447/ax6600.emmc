@@ -99,25 +99,31 @@ CONFIG_PACKAGE_luci-app-gecoosac=y
 CONFIG_PACKAGE_luci-app-harbor-file=y
 CONFIG_PACKAGE_luci-i18n-harbor-file-zh-cn=y
 CONFIG_PACKAGE_luci-app-diskman=y
-CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs=y
-CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk=y
-CONFIG_PACKAGE_luci-app-diskman_INCLUDE_mdadm=y
 CONFIG_PACKAGE_luci-app-openclash=y
 CONFIG_PACKAGE_luci-app-passwall=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Geoview=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Haproxy=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_Libev_Client=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_Rust_Client=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Simple_Obfs=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray_Plugin=y
-CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y
-CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y
 CONFIG_PACKAGE_luci-app-samba4=y
 CONFIG_PACKAGE_luci-app-ttyd=y
 CONFIG_PACKAGE_luci-app-upnp=y
 CONFIG_PACKAGE_luci-app-zerotier=y
 CONFIG_PACKAGE_luci-theme-argon=y
+# ===== USB 硬盘必备 =====
+CONFIG_PACKAGE_kmod-usb-storage=y
+CONFIG_PACKAGE_kmod-usb-storage-uas=y
+CONFIG_PACKAGE_block-mount=y
+CONFIG_PACKAGE_kmod-fs-ext4=y
+CONFIG_PACKAGE_kmod-fs-ntfs3=y
+
+# ===== 4G 模块串口（AT/诊断口）=====
+CONFIG_PACKAGE_kmod-usb-serial=y
+CONFIG_PACKAGE_kmod-usb-serial-option=y
+CONFIG_PACKAGE_kmod-usb-serial-wwan=y
+
+# ===== QMI/MBIM 拨号（官方）=====
+CONFIG_PACKAGE_uqmi=y
+CONFIG_PACKAGE_umbim=y
+CONFIG_PACKAGE_luci-proto-qmi=y
+CONFIG_PACKAGE_luci-proto-mbim=y
+
 EOF
 
 
