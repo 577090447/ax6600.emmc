@@ -80,8 +80,8 @@ CONFIG_PACKAGE_luci-proto-qmi=y
 CONFIG_PACKAGE_luci-proto-mbim=y
 
 # Athena LED
-CONFIG_PACKAGE_athena-led=y
-CONFIG_PACKAGE_luci-app-athena-led=y
+#CONFIG_PACKAGE_athena-led=y
+#CONFIG_PACKAGE_luci-app-athena-led=y
 EOF
 
 make defconfig
