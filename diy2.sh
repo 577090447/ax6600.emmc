@@ -8,8 +8,8 @@ sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_gener
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 # ========== 第三方插件 ==========
-
-src-git athena https://github.com/guangyin53222/AX6600-Athena-LED-Controller.git;v2.5.0
+# 注意：这里只声明 feed，不执行 git clone，避免冲突
+echo "src-git athena https://github.com/guangyin53222/AX6600-Athena-LED-Controller.git;v2.5.0" >> feeds.conf
 
 # ============================================================
 # iStore (应用商店)
