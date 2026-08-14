@@ -9,51 +9,7 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 
 # ========== 第三方插件 ==========
 
-# ============================================================
-echo "============================================"
-echo " Adding JDC-AX6600 Athena LED Controller (track main)"
-echo "============================================"
-rm -rf package/JDC-AX6600-Athena-LED-Controller
-git clone --depth=1 \
-  https://github.com/unraveloop/JDC-AX6600-Athena-LED-Controller.git \
-  package/JDC-AX6600-Athena-LED-Controller
-
-# 验证 athena-led (Rust 后端)
-if [ -f "package/JDC-AX6600-Athena-LED-Controller/athena-led/Makefile" ]; then
-  cd package/JDC-AX6600-Athena-LED-Controller
-  HEAD_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-  cd - >/dev/null
-  PKG_VER=$(grep 'PKG_VERSION' \
-    package/JDC-AX6600-Athena-LED-Controller/athena-led/Makefile \
-    | head -1 | cut -d'=' -f2)
-  echo "athena-led Makefile PKG_VERSION=${PKG_VER} (head commit: ${HEAD_COMMIT})"
-else
-  echo "ERROR: athena-led Makefile not found! Abort."
-  exit 1
-fi
-
-# ============================================================
-# 关键修复：luci-app-athena-led 是上面仓库的子目录，不是独立仓库
-# 直接将其复制到 package/ 下即可
-# ============================================================
-echo "============================================"
-echo " Adding luci-app-athena-led (from submodule in same repo)"
-echo "============================================"
-rm -rf package/luci-app-athena-led
-cp -r package/JDC-AX6600-Athena-LED-Controller/luci-app-athena-led \
-      package/luci-app-athena-led
-
-if [ -f "package/luci-app-athena-led/Makefile" ]; then
-  cd package/luci-app-athena-led
-  LUCOMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-  cd - >/dev/null
-  LUVER=$(grep 'PKG_VERSION' package/luci-app-athena-led/Makefile \
-    | head -1 | cut -d'=' -f2)
-  echo "luci-app-athena-led PKG_VERSION=${LUVER} (head commit: ${LUCOMMIT})"
-else
-  echo "ERROR: luci-app-athena-led Makefile not found! Abort."
-  exit 1
-fi
+src-git athena https://github.com/guangyin53222/AX6600-Athena-LED-Controller.git;v2.5.0
 
 # ============================================================
 # iStore (应用商店)
