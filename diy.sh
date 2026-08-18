@@ -47,9 +47,6 @@ else
   exit 1
 fi
 
-# ========== 4. Argon 主题 ==========
-echo "设置 Argon 为默认主题..."
-sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 # ========== 6. 克隆第三方插件 ==========
 echo "克隆第三方插件..."
