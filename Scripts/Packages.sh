@@ -31,11 +31,12 @@ UPDATE_PACKAGE() {
 	# 克隆 GitHub 仓库
 	git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git"
 
-	# ✅ 如果是 tag，则 checkout 到指定 tag
-	if git rev-parse -q --verify "refs/tags/$PKG_BRANCH" >/dev/null; then
-		echo "Detected tag: $PKG_BRANCH, checking out..."
-		git -C "$REPO_NAME" fetch --depth=1 origin "tag $PKG_BRANCH"
-		git -C "$REPO_NAME" checkout -q "tags/$PKG_BRANCH"
+	# ✅ 修复：不再使用非法 refspec "tag XXX"
+	# git clone --branch <tag> 已经直接 checkout 到 tag，无需再 fetch
+	if git -C "$REPO_NAME" rev-parse -q --verify "refs/tags/$PKG_BRANCH" >/dev/null; then
+		echo "Detected tag: $PKG_BRANCH (already checked out by git clone)"
+	else
+		echo "Branch mode: $PKG_BRANCH"
 	fi
 
 	# 处理克隆的仓库
@@ -85,8 +86,8 @@ UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub gecoosac sing-bo
 UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"
 
 # ===================== LED 控制器 (雅典娜 AX6600) =====================
-UPDATE_PACKAGE "athena-led" "577090447/JDC-AX6600-Athena-LED" "JDC-AX6600-Athena-LED-2.5.0" "pkg"
-UPDATE_PACKAGE "luci-app-athena-led" "577090447/JDC-AX6600-Athena-LED" "JDC-AX6600-Athena-LED-2.5.0" "pkg"
+UPDATE_PACKAGE "athena-led" "577090447/JDC-AX6600-Athena-LED" "2.5.0" "pkg"
+UPDATE_PACKAGE "luci-app-athena-led" "577090447/JDC-AX6600-Athena-LED" "2.5.0" "pkg"
 
 # ========== 第三方扩展插件 ==========
 echo "========================================"
