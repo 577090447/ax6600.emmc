@@ -201,7 +201,7 @@ jobs:
           echo "CONFIG_PACKAGE_athena-led=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-athena-led=y" >> .config
 
-      # ===== 安装 athena-led + 修复 Rust 交叉编译工具链（替换原 fix-athena-led.sh）=====
+      # ===== 安装 athena-led + 修复 Rust 交叉编译工具链（已修复 tag 问题）=====
       - name: Install athena-led & setup toolchain
         run: |
           # ---- 1. 安装 aarch64-linux-musl-gcc（ring crate 编译必需）----
@@ -216,13 +216,13 @@ jobs:
           # 清理可能已存在的旧目录
           rm -rf athena-led luci-app-athena-led JDC-AX6600-Athena-LED-tmp
 
-          git clone --depth=1 --single-branch --branch "JDC-AX6600-Athena-LED-2.5.0" \
+          # ✅ 使用真实 Git tag: 2.5.0（不是 Release 标题）
+          git clone --depth=1 --single-branch --branch "2.5.0" \
             https://github.com/577090447/JDC-AX6600-Athena-LED.git JDC-AX6600-Athena-LED-tmp
 
-          # checkout 到 tag
+          # ✅ git clone --branch 已经 checkout 到 tag，无需再 fetch
           cd JDC-AX6600-Athena-LED-tmp
-          git fetch --depth=1 origin "tag JDC-AX6600-Athena-LED-2.5.0"
-          git checkout -q "tags/JDC-AX6600-Athena-LED-2.5.0"
+          git checkout -q "2.5.0"
           cd ..
 
           # 提取子目录到 package/ 根目录
@@ -318,10 +318,4 @@ jobs:
             平台：${{env.WRT_TARGET}}
 
             登录地址：${{env.WRT_IP}}
-            登录密码：${{env.WRT_PW}}
-
-            WIFI名称：${{env.WRT_SSID}}
-            WIFI密码：${{env.WRT_WORD}}
-
-            内核版本：${{env.WRT_KVER}}
-            插件列表：${{env.WRT_LIST}}
+            登录密码
