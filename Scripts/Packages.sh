@@ -88,9 +88,11 @@ UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub gecoosac sing-bo
 UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"
 
 # ===================== LED 控制器 (雅典娜 AX6600) =====================
-# ✅ 用 main 分支（仓库只有 main，代码已包含 v2.5.0 全部内容）
-UPDATE_PACKAGE "athena-led" "577090447/JDC-AX6600-Athena-LED" "main" "pkg"
-UPDATE_PACKAGE "luci-app-athena-led" "577090447/JDC-AX6600-Athena-LED" "main" "pkg"
+# ✅ 用 main 分支
+# ✅ 新仓库结构包含 athena-led 和 luci-app-athena-led，两行均保留
+UPDATE_PACKAGE "athena-led" "577090447/JDC-AX6600-Athena-LED-Controller" "main" "pkg"
+UPDATE_PACKAGE "luci-app-athena-led" "577090447/JDC-AX6600-Athena-LED-Controller" "main" "pkg"
+
 
 # ========== 第三方扩展插件 ==========
 echo "========================================"
