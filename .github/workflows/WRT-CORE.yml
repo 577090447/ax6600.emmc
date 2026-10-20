@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2026 VIKINGYFY
 
-#云编译公用核心（已修改：注入仓库 files / 禁止 Settings.sh 覆盖无线配置 / 集成 athena-led）
+# 云编译公用核心（已修改：注入仓库 files / 禁止 Settings.sh 覆盖无线配置 / 集成 athena-led）
 name: WRT-CORE
 
 on:
@@ -197,14 +197,54 @@ jobs:
 
           $GITHUB_WORKSPACE/Scripts/Settings.sh
 
-      # ===== 安装 athena-led（clone v2.5.0 + 覆盖 Makefile，必须在 defconfig 之前）=====
-      - name: Install athena-led
-        run: bash $GITHUB_WORKSPACE/Scripts/fix-athena-led.sh
+          # ---- 自动追加 athena-led 配置（防止 .config 漏写）----
+          echo "CONFIG_PACKAGE_athena-led=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-athena-led=y" >> .config
+
+      # ===== 安装 athena-led + 修复 Rust 交叉编译工具链（替换原 fix-athena-led.sh）=====
+      - name: Install athena-led & setup toolchain
+        run: |
+          # ---- 1. 安装 aarch64-linux-musl-gcc（ring crate 编译必需）----
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools
+          sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-musl-gcc
+          aarch64-linux-musl-gcc --version
+
+          # ---- 2. clone athena-led 仓库并提取到 package/ ----
+          cd ./wrt/package/
+
+          # 清理可能已存在的旧目录
+          rm -rf athena-led luci-app-athena-led JDC-AX6600-Athena-LED-tmp
+
+          git clone --depth=1 --single-branch --branch "JDC-AX6600-Athena-LED-2.5.0" \
+            https://github.com/577090447/JDC-AX6600-Athena-LED.git JDC-AX6600-Athena-LED-tmp
+
+          # checkout 到 tag
+          cd JDC-AX6600-Athena-LED-tmp
+          git fetch --depth=1 origin "tag JDC-AX6600-Athena-LED-2.5.0"
+          git checkout -q "tags/JDC-AX6600-Athena-LED-2.5.0"
+          cd ..
+
+          # 提取子目录到 package/ 根目录
+          cp -rf JDC-AX6600-Athena-LED-tmp/athena-led/ ./athena-led/
+          cp -rf JDC-AX6600-Athena-LED-tmp/luci-app-athena-led/ ./luci-app-athena-led/
+
+          rm -rf JDC-AX6600-Athena-LED-tmp
+
+          echo "=== athena-led packages installed ==="
+          ls -la athena-led/Makefile luci-app-athena-led/Makefile
+
+          # ---- 3. 设置 cargo linker 环境变量 ----
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc" >> $GITHUB_ENV
 
       # ===== 最终 defconfig：确保 athena-led 的 DEPENDS 条件满足后 .config 生效 =====
       - name: Final defconfig
         run: |
           cd ./wrt/
+
+          # 确保 Rust target 存在（如果 OpenWrt Makefile 调用 cargo）
+          rustup target add aarch64-unknown-linux-musl 2>/dev/null || true
+
           make defconfig -j$(nproc)
           make clean -j$(nproc)
 
