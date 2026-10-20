@@ -108,7 +108,7 @@ jobs:
             sed -i '/.cn\//d; /tencent/d; /aliyun/d' "$PROJECT_MIRRORS_FILE"
           fi
 
-      # ===== 新增：将仓库根的 files/ 注入到 OpenWrt 源码树（overlay）=====
+      # ===== 将仓库根的 files/ 注入到 OpenWrt 源码树（overlay）=====
       - name: Inject custom files
         run: |
           if [ -d "${GITHUB_WORKSPACE}/files" ] && [ -n "$(ls -A ${GITHUB_WORKSPACE}/files)" ]; then
@@ -168,12 +168,28 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      # ===== ✅ 修改：Custom Packages 步骤，加入 athena-led 手动安装 =====
       - name: Custom Packages
         run: |
           cd ./wrt/package/
 
+          # 1. 先跑通用包脚本
           $GITHUB_WORKSPACE/Scripts/Packages.sh
           $GITHUB_WORKSPACE/Scripts/Handles.sh
+
+          # 2. ✅ athena-led 手动安装（main 分支，避免 tag 浅克隆报错）
+          echo "=== Installing athena-led from main branch ==="
+          rm -rf athena-led luci-app-athena-led JDC-AX6600-Athena-LED-tmp
+
+          git clone --depth=1 --single-branch --branch main \
+            https://github.com/577090447/JDC-AX6600-Athena-LED.git JDC-AX6600-Athena-LED-tmp
+
+          cp -rf JDC-AX6600-Athena-LED-tmp/athena-led/ ./athena-led/
+          cp -rf JDC-AX6600-Athena-LED-tmp/luci-app-athena-led/ ./luci-app-athena-led/
+          rm -rf JDC-AX6600-Athena-LED-tmp
+
+          echo "=== athena-led packages installed ==="
+          ls -la athena-led/Makefile luci-app-athena-led/Makefile 2>/dev/null || echo "Check files above"
 
       - name: Custom Settings
         run: |
@@ -189,7 +205,7 @@ jobs:
 
           make defconfig -j$(nproc) && make clean -j$(nproc)
 
-      # ===== 新增：禁止 Settings.sh 在编译期回写覆盖 WIFI 名称/密码 =====
+      # ===== 禁止 Settings.sh 在编译期回写覆盖 WIFI 名称/密码 =====
       - name: Prevent wireless overwrite by Settings.sh
         run: |
           if [ -f "$GITHUB_WORKSPACE/Scripts/Settings.sh" ]; then
