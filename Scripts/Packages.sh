@@ -28,15 +28,17 @@ UPDATE_PACKAGE() {
 		fi
 	done
 
-	# 克隆 GitHub 仓库
-	git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git"
-
-	# ✅ 修复：不再使用非法 refspec "tag XXX"
-	# git clone --branch <tag> 已经直接 checkout 到 tag，无需再 fetch
-	if git -C "$REPO_NAME" rev-parse -q --verify "refs/tags/$PKG_BRANCH" >/dev/null; then
-		echo "Detected tag: $PKG_BRANCH (already checked out by git clone)"
+	# 克隆 GitHub 仓库（支持分支和 tag 自动识别）
+	if git ls-remote --tags "https://github.com/$PKG_REPO.git" | grep -q "refs/tags/$PKG_BRANCH$"; then
+		# ✅ Tag 模式：先 clone 默认分支，再 fetch tag
+		echo "Tag mode detected: $PKG_BRANCH"
+		git clone --depth=1 "https://github.com/$PKG_REPO.git" "$REPO_NAME"
+		git -C "$REPO_NAME" fetch --depth=1 origin "refs/tags/$PKG_BRANCH:refs/tags/$PKG_BRANCH"
+		git -C "$REPO_NAME" checkout -q "refs/tags/$PKG_BRANCH"
 	else
+		# ✅ 分支模式：直接 clone 指定分支
 		echo "Branch mode: $PKG_BRANCH"
+		git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git" "$REPO_NAME"
 	fi
 
 	# 处理克隆的仓库
@@ -86,8 +88,9 @@ UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub gecoosac sing-bo
 UPDATE_PACKAGE "vnt" "lmq8267/luci-app-vnt" "main"
 
 # ===================== LED 控制器 (雅典娜 AX6600) =====================
-UPDATE_PACKAGE "athena-led" "577090447/JDC-AX6600-Athena-LED" "2.5.0" "pkg"
-UPDATE_PACKAGE "luci-app-athena-led" "577090447/JDC-AX6600-Athena-LED" "2.5.0" "pkg"
+# ✅ 用 main 分支（仓库只有 main，代码已包含 v2.5.0 全部内容）
+UPDATE_PACKAGE "athena-led" "577090447/JDC-AX6600-Athena-LED" "main" "pkg"
+UPDATE_PACKAGE "luci-app-athena-led" "577090447/JDC-AX6600-Athena-LED" "main" "pkg"
 
 # ========== 第三方扩展插件 ==========
 echo "========================================"
