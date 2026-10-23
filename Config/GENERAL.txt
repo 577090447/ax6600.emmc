@@ -31,6 +31,20 @@ CONFIG_PACKAGE_mount-utils=y
 # 兼容层（新固件不需要）
 CONFIG_PACKAGE_luci-compat=y
 
+# ==================== Docker 核心 ====================
+CONFIG_PACKAGE_luci-app-dockerman=y
+CONFIG_PACKAGE_docker=y
+CONFIG_PACKAGE_dockerd=y
+CONFIG_PACKAGE_luci-lib-docker=y
+
+CONFIG_PACKAGE_bash=y
+
+# ==================== 存储/挂载（Docker 迁移必备） ====================
+CONFIG_PACKAGE_block-mount=y
+CONFIG_PACKAGE_kmod-usb-storage=y
+CONFIG_PACKAGE_kmod-fs-ext4=y
+CONFIG_PACKAGE_libblkid=y
+CONFIG_PACKAGE_blkid=y
 
 
 CONFIG_PACKAGE_luci-app-harbor-file=y
