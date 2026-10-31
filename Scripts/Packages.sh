@@ -59,9 +59,17 @@ UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
 UPDATE_PACKAGE "theme-fluent" "LazuliKao/luci-theme-fluent" "main"
 UPDATE_PACKAGE "emmc-health" "adminchenyu/eMMC-Health" "main"
 
-# 👇 新增主题
-UPDATE_PACKAGE "luci-theme-footstrap" "VizzleTF/luci-theme-footstrap" "main"
-UPDATE_PACKAGE "luci-theme-vantage" "anothaDev/luci-theme-vantage" "main"
+UPDATE_PACKAGE "emmc-health" "adminchenyu/eMMC-Health" "main"
+
+# 👇 新增：修复标准 OpenWrt/ImmortalWrt 编译依赖
+# 仓库克隆下来的目录名可能是 eMMC-Health 或 emmc-health，做兼容处理
+if [ -d "package/emmc-health" ]; then
+    sed -i 's/+luci-js-deps//g' package/emmc-health/Makefile
+    sed -i 's/+luci-base +luci-js-deps/+luci-base/g' package/emmc-health/Makefile
+elif [ -d "package/eMMC-Health" ]; then
+    sed -i 's/+luci-js-deps//g' package/eMMC-Health/Makefile
+    sed -i 's/+luci-base +luci-js-deps/+luci-base/g' package/eMMC-Health/Makefile
+fi
 
 # ===================== 网络 / 代理 =====================
 UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
