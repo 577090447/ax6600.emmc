@@ -65,16 +65,13 @@ UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
 UPDATE_PACKAGE "noobwrt" "nooblk-98/luci-theme-noobwrt" "master"
 UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
 UPDATE_PACKAGE "theme-fluent" "LazuliKao/luci-theme-fluent" "main"
+
 # 👇 官方默认主题（内置，无需拉取，仅固化到 .config）
 if [ -f .config ]; then
 	grep -q "CONFIG_PACKAGE_luci-theme-bootstrap" .config \
 		|| echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
 	sed -i 's/^# CONFIG_PACKAGE_luci-theme-bootstrap is not set/CONFIG_PACKAGE_luci-theme-bootstrap=y/' .config
 fi
-
-# ===================== eMMC 健康检测（跟踪 main，不锁版本）=====================
-# ③ 只保留一次调用，通用修复已在函数内自动完成（含 luci-js-deps 剔除）
-UPDATE_PACKAGE "emmc-health" "adminchenyu/eMMC-Health" "main"
 
 # ===================== 网络 / 代理 =====================
 UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
@@ -123,7 +120,6 @@ UPDATE_PACKAGE "linkease" "linkease/nas-packages" "master" "" "linkease"
 UPDATE_PACKAGE "luci-app-linkease" "linkease/nas-packages-luci" "main" "" "luci-app-linkease luci-i18n-linkease-zh-cn"
 
 # ===================== 版本更新函数 =====================
-# ④ 注意：emmc-health 的 Makefile 无 PKG_SOURCE_URL，不要对它调用 UPDATE_VERSION
 UPDATE_VERSION() {
 	local PKG_NAME=$1
 	local PKG_MARK=${2:-false}
