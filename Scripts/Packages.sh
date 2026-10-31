@@ -13,10 +13,11 @@ UPDATE_PACKAGE() {
 
 	echo " "
 
+	# ① 修复：所有路径统一到 package/ 目录（脚本应在源码根目录运行）
 	# 删除本地可能存在的不同名称的软件包
 	for NAME in "${PKG_LIST[@]}"; do
 		echo "Search directory: $NAME"
-		local FOUND_DIRS=$(find ../feeds/luci/ ../feeds/packages/ -maxdepth 3 -type d -iname "*$NAME*" 2>/dev/null)
+		local FOUND_DIRS=$(find package/ feeds/luci/ feeds/packages/ -maxdepth 3 -type d -iname "*$NAME*" 2>/dev/null)
 
 		if [ -n "$FOUND_DIRS" ]; then
 			while read -r DIR; do
@@ -31,20 +32,27 @@ UPDATE_PACKAGE() {
 	# 克隆 GitHub 仓库（支持分支和 tag 自动识别）
 	if git ls-remote --tags "https://github.com/$PKG_REPO.git" | grep -q "refs/tags/$PKG_BRANCH$"; then
 		echo "Tag mode detected: $PKG_BRANCH"
-		git clone --depth=1 "https://github.com/$PKG_REPO.git" "$REPO_NAME"
-		git -C "$REPO_NAME" fetch --depth=1 origin "refs/tags/$PKG_BRANCH:refs/tags/$PKG_BRANCH"
-		git -C "$REPO_NAME" checkout -q "refs/tags/$PKG_BRANCH"
+		git clone --depth=1 "https://github.com/$PKG_REPO.git" "package/$REPO_NAME"
+		git -C "package/$REPO_NAME" fetch --depth=1 origin "refs/tags/$PKG_BRANCH:refs/tags/$PKG_BRANCH"
+		git -C "package/$REPO_NAME" checkout -q "refs/tags/$PKG_BRANCH"
 	else
 		echo "Branch mode: $PKG_BRANCH"
-		git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git" "$REPO_NAME"
+		git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git" "package/$REPO_NAME"
 	fi
 
 	# 处理克隆的仓库
 	if [[ "$PKG_SPECIAL" == "pkg" ]]; then
-		find ./$REPO_NAME/*/ -maxdepth 3 -type d -iname "*$PKG_NAME*" -prune -exec cp -rf {} ./ \;
-		rm -rf ./$REPO_NAME/
+		find "package/$REPO_NAME/"* -maxdepth 3 -type d -iname "*$PKG_NAME*" -prune -exec cp -rf {} package/ \;
+		rm -rf "package/$REPO_NAME/"
 	elif [[ "$PKG_SPECIAL" == "name" ]]; then
-		mv -f $REPO_NAME $PKG_NAME
+		mv -f "package/$REPO_NAME" "package/$PKG_NAME"
+	fi
+
+	# ② 通用修复：移除 iStoreOS 专属的 luci-js-deps 依赖，兼容标准 OpenWrt / ImmortalWrt
+	if [ -f "package/$PKG_NAME/Makefile" ]; then
+		sed -i 's/+luci-js-deps//g' "package/$PKG_NAME/Makefile"
+		sed -i 's/+luci-base +luci-js-deps/+luci-base/g' "package/$PKG_NAME/Makefile"
+		echo "Patched: removed luci-js-deps from package/$PKG_NAME/Makefile"
 	fi
 }
 
@@ -57,19 +65,16 @@ UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
 UPDATE_PACKAGE "noobwrt" "nooblk-98/luci-theme-noobwrt" "master"
 UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
 UPDATE_PACKAGE "theme-fluent" "LazuliKao/luci-theme-fluent" "main"
-UPDATE_PACKAGE "emmc-health" "adminchenyu/eMMC-Health" "main"
-
-UPDATE_PACKAGE "emmc-health" "adminchenyu/eMMC-Health" "main"
-
-# 👇 新增：修复标准 OpenWrt/ImmortalWrt 编译依赖
-# 仓库克隆下来的目录名可能是 eMMC-Health 或 emmc-health，做兼容处理
-if [ -d "package/emmc-health" ]; then
-    sed -i 's/+luci-js-deps//g' package/emmc-health/Makefile
-    sed -i 's/+luci-base +luci-js-deps/+luci-base/g' package/emmc-health/Makefile
-elif [ -d "package/eMMC-Health" ]; then
-    sed -i 's/+luci-js-deps//g' package/eMMC-Health/Makefile
-    sed -i 's/+luci-base +luci-js-deps/+luci-base/g' package/eMMC-Health/Makefile
+# 👇 官方默认主题（内置，无需拉取，仅固化到 .config）
+if [ -f .config ]; then
+	grep -q "CONFIG_PACKAGE_luci-theme-bootstrap" .config \
+		|| echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
+	sed -i 's/^# CONFIG_PACKAGE_luci-theme-bootstrap is not set/CONFIG_PACKAGE_luci-theme-bootstrap=y/' .config
 fi
+
+# ===================== eMMC 健康检测（跟踪 main，不锁版本）=====================
+# ③ 只保留一次调用，通用修复已在函数内自动完成（含 luci-js-deps 剔除）
+UPDATE_PACKAGE "emmc-health" "adminchenyu/eMMC-Health" "main"
 
 # ===================== 网络 / 代理 =====================
 UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
@@ -118,10 +123,11 @@ UPDATE_PACKAGE "linkease" "linkease/nas-packages" "master" "" "linkease"
 UPDATE_PACKAGE "luci-app-linkease" "linkease/nas-packages-luci" "main" "" "luci-app-linkease luci-i18n-linkease-zh-cn"
 
 # ===================== 版本更新函数 =====================
+# ④ 注意：emmc-health 的 Makefile 无 PKG_SOURCE_URL，不要对它调用 UPDATE_VERSION
 UPDATE_VERSION() {
 	local PKG_NAME=$1
 	local PKG_MARK=${2:-false}
-	local PKG_FILES=$(find ./ ../feeds/packages/ -maxdepth 3 -type f -wholename "*/$PKG_NAME/Makefile")
+	local PKG_FILES=$(find package/ feeds/packages/ -maxdepth 3 -type f -wholename "*/$PKG_NAME/Makefile")
 
 	if [ -z "$PKG_FILES" ]; then
 		echo "$PKG_NAME not found!"
