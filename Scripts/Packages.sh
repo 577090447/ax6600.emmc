@@ -13,11 +13,10 @@ UPDATE_PACKAGE() {
 
 	echo " "
 
-	# ① 修复：所有路径统一到 package/ 目录（脚本应在源码根目录运行）
 	# 删除本地可能存在的不同名称的软件包
 	for NAME in "${PKG_LIST[@]}"; do
 		echo "Search directory: $NAME"
-		local FOUND_DIRS=$(find package/ feeds/luci/ feeds/packages/ -maxdepth 3 -type d -iname "*$NAME*" 2>/dev/null)
+		local FOUND_DIRS=$(find ../feeds/luci/ ../feeds/packages/ -maxdepth 3 -type d -iname "*$NAME*" 2>/dev/null)
 
 		if [ -n "$FOUND_DIRS" ]; then
 			while read -r DIR; do
@@ -32,46 +31,36 @@ UPDATE_PACKAGE() {
 	# 克隆 GitHub 仓库（支持分支和 tag 自动识别）
 	if git ls-remote --tags "https://github.com/$PKG_REPO.git" | grep -q "refs/tags/$PKG_BRANCH$"; then
 		echo "Tag mode detected: $PKG_BRANCH"
-		git clone --depth=1 "https://github.com/$PKG_REPO.git" "package/$REPO_NAME"
-		git -C "package/$REPO_NAME" fetch --depth=1 origin "refs/tags/$PKG_BRANCH:refs/tags/$PKG_BRANCH"
-		git -C "package/$REPO_NAME" checkout -q "refs/tags/$PKG_BRANCH"
+		git clone --depth=1 "https://github.com/$PKG_REPO.git" "$REPO_NAME"
+		git -C "$REPO_NAME" fetch --depth=1 origin "refs/tags/$PKG_BRANCH:refs/tags/$PKG_BRANCH"
+		git -C "$REPO_NAME" checkout -q "refs/tags/$PKG_BRANCH"
 	else
 		echo "Branch mode: $PKG_BRANCH"
-		git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git" "package/$REPO_NAME"
+		git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/$PKG_REPO.git" "$REPO_NAME"
 	fi
 
 	# 处理克隆的仓库
 	if [[ "$PKG_SPECIAL" == "pkg" ]]; then
-		find "package/$REPO_NAME/"* -maxdepth 3 -type d -iname "*$PKG_NAME*" -prune -exec cp -rf {} package/ \;
-		rm -rf "package/$REPO_NAME/"
+		find ./$REPO_NAME/*/ -maxdepth 3 -type d -iname "*$PKG_NAME*" -prune -exec cp -rf {} ./ \;
+		rm -rf ./$REPO_NAME/
 	elif [[ "$PKG_SPECIAL" == "name" ]]; then
-		mv -f "package/$REPO_NAME" "package/$PKG_NAME"
-	fi
-
-	# ② 通用修复：移除 iStoreOS 专属的 luci-js-deps 依赖，兼容标准 OpenWrt / ImmortalWrt
-	if [ -f "package/$PKG_NAME/Makefile" ]; then
-		sed -i 's/+luci-js-deps//g' "package/$PKG_NAME/Makefile"
-		sed -i 's/+luci-base +luci-js-deps/+luci-base/g' "package/$PKG_NAME/Makefile"
-		echo "Patched: removed luci-js-deps from package/$PKG_NAME/Makefile"
+		mv -f $REPO_NAME $PKG_NAME
 	fi
 }
 
 # ===================== 主题 =====================
-UPDATE_PACKAGE "argon" "sbwml/luci-theme-argon" "openwrt-25.12"
+# UPDATE_PACKAGE "argon" "sbwml/luci-theme-argon" "openwrt-25.12"
 UPDATE_PACKAGE "aurora" "eamonxg/luci-theme-aurora" "master"
-UPDATE_PACKAGE "aurora-config" "eamonxg/luci-app-aurora-config" "master"
-UPDATE_PACKAGE "kucat" "sirpdboy/luci-theme-kucat" "master"
-UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
-UPDATE_PACKAGE "noobwrt" "nooblk-98/luci-theme-noobwrt" "master"
-UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
-UPDATE_PACKAGE "theme-fluent" "LazuliKao/luci-theme-fluent" "main"
+# UPDATE_PACKAGE "aurora-config" "eamonxg/luci-app-aurora-config" "master"
+# UPDATE_PACKAGE "kucat" "sirpdboy/luci-theme-kucat" "master"
+# UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
+# UPDATE_PACKAGE "noobwrt" "nooblk-98/luci-theme-noobwrt" "master"
+# UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
+# UPDATE_PACKAGE "theme-fluent" "LazuliKao/luci-theme-fluent" "main"
 
-# 👇 官方默认主题（内置，无需拉取，仅固化到 .config）
-if [ -f .config ]; then
-	grep -q "CONFIG_PACKAGE_luci-theme-bootstrap" .config \
-		|| echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
-	sed -i 's/^# CONFIG_PACKAGE_luci-theme-bootstrap is not set/CONFIG_PACKAGE_luci-theme-bootstrap=y/' .config
-fi
+# 👇 新增主题
+UPDATE_PACKAGE "luci-theme-footstrap" "VizzleTF/luci-theme-footstrap" "main"
+UPDATE_PACKAGE "luci-theme-vantage" "anothaDev/luci-theme-vantage" "main"
 
 # ===================== 网络 / 代理 =====================
 UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
@@ -81,7 +70,7 @@ UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"
 UPDATE_PACKAGE "passwall2" "Openwrt-Passwall/openwrt-passwall2" "main" "pkg"
 
 # ===================== 工具 / 系统 =====================
-UPDATE_PACKAGE "luci-app-tailscale" "asvow/luci-app-tailscale" "main"
+# UPDATE_PACKAGE "luci-app-tailscale" "asvow/luci-app-tailscale" "main"
 UPDATE_PACKAGE "luci-app-tcpdump" "KFERMercer/luci-app-tcpdump" "master" "" "tcpdump"
 
 UPDATE_PACKAGE "ddns-go" "sirpdboy/luci-app-ddns-go" "main"
@@ -123,7 +112,7 @@ UPDATE_PACKAGE "luci-app-linkease" "linkease/nas-packages-luci" "main" "" "luci-
 UPDATE_VERSION() {
 	local PKG_NAME=$1
 	local PKG_MARK=${2:-false}
-	local PKG_FILES=$(find package/ feeds/packages/ -maxdepth 3 -type f -wholename "*/$PKG_NAME/Makefile")
+	local PKG_FILES=$(find ./ ../feeds/packages/ -maxdepth 3 -type f -wholename "*/$PKG_NAME/Makefile")
 
 	if [ -z "$PKG_FILES" ]; then
 		echo "$PKG_NAME not found!"
