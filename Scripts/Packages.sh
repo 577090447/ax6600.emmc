@@ -59,7 +59,7 @@ UPDATE_PACKAGE "aurora" "eamonxg/luci-theme-aurora" "master"
 # UPDATE_PACKAGE "theme-fluent" "LazuliKao/luci-theme-fluent" "main"
 
 # 👇 新增主题
-UPDATE_PACKAGE "luci-theme-footstrap" "VizzleTF/luci-theme-footstrap" "main"
+# UPDATE_PACKAGE "luci-theme-footstrap" "VizzleTF/luci-theme-footstrap" "main"
 UPDATE_PACKAGE "luci-theme-vantage" "anothaDev/luci-theme-vantage" "main"
 
 # ===================== 网络 / 代理 =====================
