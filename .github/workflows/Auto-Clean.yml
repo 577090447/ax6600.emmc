@@ -4,9 +4,9 @@
 name: Auto-Clean
 
 on:
-  #自动清理：每天早上5点
+  #自动清理：每天晚上20点（UTC 12:00 = 北京时间 20:00）
   schedule:
-    - cron: 21 21 * * *
+    - cron: 0 12 * * *
   #手动清理
   workflow_dispatch:
 
@@ -21,7 +21,7 @@ jobs:
         with:
           gh_token: ${{secrets.GITHUB_TOKEN}}
           delete_releases: true
-          releases_keep_latest: 0
+          releases_keep_latest: 2
           delete_tags: true
           delete_workflows: true
           workflows_keep_day: 0
