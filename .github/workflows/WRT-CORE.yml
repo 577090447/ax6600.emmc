@@ -1,7 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2026 VIKINGYFY
 
-# 云编译公用核心（已修改：注入仓库 files/ 并禁止 Settings.sh 覆盖无线配置，athena-led 使用新仓库精确拷贝）
+# 云编译公用核心
+# 修订记录：
+#   1) 把构建环境初始化脚本本地化（不再 curl 远程裸执行）
+#   2) feeds install 拆到第三方包就位之后执行，修复第三方包全部不生效
+#   3) 所有第三方包改为精确拷贝子目录，避免 Makefile 深于 2 级被漏扫
+#   4) 新增 Diagnose 自检步骤，快速定位包索引/配置问题
+#   5) 无线防覆盖步骤前移，修复原时序无效问题
+#   6) 缓存清理改用 gh cache list --format json，避免 cut -f1 解析脆断
 name: WRT-CORE
 
 on:
@@ -47,7 +54,7 @@ on:
 env:
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   WRT_CONFIG: ${{inputs.WRT_CONFIG}}
-  WRT_THEME: ${{inputs.WRT_THEME}}
+  WRT_THEME: ${{inputs.WRT_TMEME}}
   WRT_NAME: ${{inputs.WRT_NAME}}
   WRT_SSID: ${{inputs.WRT_SSID}}
   WRT_WORD: ${{inputs.WRT_WORD}}
@@ -77,8 +84,13 @@ jobs:
           sudo -E apt -yqq autoremove --purge
           sudo -E apt -yqq autoclean
           sudo -E apt -yqq clean
-          sudo -E apt -yqq install dos2unix libfuse-dev libncurses-dev libncurses6
-          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          sudo -E apt -yqq install dos2unix libfuse-dev libncurses-dev libncurses6 jq
+          # 构建环境初始化脚本本地化：优先使用仓库内副本，缺失时才回退到官方远程
+          if [ -x "$GITHUB_WORKSPACE/Scripts/init_build_environment.sh" ]; then
+            sudo bash "$GITHUB_WORKSPACE/Scripts/init_build_environment.sh"
+          else
+            sudo bash -c 'bash <(curl -fsSL --retry 3 https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          fi
           sudo -E systemctl daemon-reload
           sudo -E timedatectl set-timezone "Asia/Shanghai"
 
@@ -125,6 +137,13 @@ jobs:
         run: |
           find ./ -maxdepth 3 -type f -iregex ".*\(txt\|sh\)$" -exec dos2unix {} \; -exec chmod +x {} \;
 
+      - name: Update Feeds (only update, do not install yet)
+        run: |
+          cd ./wrt/
+
+          ./scripts/feeds update -a
+          # 注意：install 延后到第三方包就位之后，否则新增包不会被建索引
+
       - name: Check Caches
         id: check-cache
         if: env.WRT_TEST != 'true'
@@ -153,45 +172,72 @@ jobs:
           fi
 
           if ${{steps.check-cache.outputs.cache-hit != 'true'}}; then
-            CACHE_LIST=$(gh cache list --key "$WRT_CONFIG-$WRT_INFO" | cut -f 1)
-            for CACHE_KEY in $CACHE_LIST; do
-              gh cache delete $CACHE_KEY
+            # 使用 --format json 解析，规避 cut -f1 在 CLI 版本变化时的脆断
+            gh cache list --key "$WRT_CONFIG-$WRT_INFO" --format json | jq -r '.[].id' | while read -r CACHE_ID; do
+              [ -n "$CACHE_ID" ] && gh cache delete "$CACHE_ID"
             done
 
             echo "caches cleanup done!"
           fi
 
-      - name: Update Feeds
-        run: |
-          cd ./wrt/
-
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
-      # ===== ✅ athena-led 精确拷贝（新仓库，本地化预编译，不重复）=====
+      # ===== 第三方包统一用“精确拷贝子目录”，保证 Makefile 处于 package 下 2 级以内 =====
       - name: Custom Packages
         run: |
+          set -e
           cd ./wrt/package/
 
-          # 1. 先跑通用包脚本（Packages.sh 中 athena-led 已注释，避免重复）
+          # 1. 通用包脚本（Packages.sh / Handles.sh）
           $GITHUB_WORKSPACE/Scripts/Packages.sh
           $GITHUB_WORKSPACE/Scripts/Handles.sh
 
-          # 2. ✅ athena-led 核心包 + luci-app-athena-led 界面包（精确拷贝子目录）
-          echo "=== Installing athena-led from fork repo ==="
-          rm -rf athena-led luci-app-athena-led led-controller-tmp
-
+          # 2. athena-led：核心包 + luci 界面包
+          echo "=== Installing athena-led ==="
+          rm -rf athena-led luci-app-athena-led
           git clone --depth=1 --single-branch --branch main \
-            https://github.com/577090447/JDC-AX6600-Athena-LED-Controller.git led-controller-tmp
+            https://github.com/577090447/JDC-AX6600-Athena-LED-Controller.git /tmp/led-tmp
+          cp -rf /tmp/led-tmp/athena-led ./athena-led/
+          cp -rf /tmp/led-tmp/luci-app-athena-led ./luci-app-athena-led/
+          rm -rf /tmp/led-tmp
 
-          # 只拷贝两个包目录，不污染 package/ 根目录
-          cp -rf led-controller-tmp/athena-led ./athena-led/
-          cp -rf led-controller-tmp/luci-app-athena-led ./luci-app-athena-led/
+          # 3. 易有云：服务包 + luci 界面包（仓库结构是子目录，必须精确拷贝）
+          echo "=== Installing linkease ==="
+          rm -rf linkease luci-app-linkease
+          git clone --depth=1 --single-branch --branch master \
+            https://github.com/linkease/nas-packages.git /tmp/nas-tmp
+          cp -rf /tmp/nas-tmp/network/services/linkease ./linkease/
+          rm -rf /tmp/nas-tmp
+          git clone --depth=1 --single-branch --branch main \
+            https://github.com/linkease/nas-packages-luci.git /tmp/nasluci-tmp
+          cp -rf /tmp/nasluci-tmp/luci/luci-app-linkease ./luci-app-linkease/
+          rm -rf /tmp/nasluci-tmp
 
-          rm -rf led-controller-tmp
+          echo "=== installed packages ==="
+          for p in athena-led luci-app-athena-led linkease luci-app-linkease; do
+            if [ -f "$p/Makefile" ]; then
+              echo "OK   $p/Makefile"
+            else
+              echo "MISS $p/Makefile" >&2
+            fi
+          done
 
-          echo "=== athena-led packages installed ==="
-          ls -la athena-led/Makefile luci-app-athena-led/Makefile 2>/dev/null || echo "Check files above"
+      # ===== 第三方包就位后再建索引，这是修复“第三方包全部拉取不到”的关键 =====
+      - name: Install Feeds (after custom packages landed)
+        run: |
+          cd ./wrt/
+          ./scripts/feeds install -a
+
+      # ===== 自检：一眼看出包到底进了哪一层 =====
+      - name: Diagnose Packages
+        run: |
+          cd ./wrt/
+          echo "=== feeds 索引行数（为 0 说明 update 网络失败） ==="
+          for f in feeds/*.index; do [ -f "$f" ] && echo "$f: $(wc -l < "$f") lines"; done
+          echo "=== 关键第三方包是否在索引中 ==="
+          grep -h "Package:" feeds/*.index 2>/dev/null | grep -iE "openclash|passwall|aurora|vantage|linkease|ddns-go|diskman|athena-led|store" || echo "NOT FOUND IN INDEX"
+          echo "=== package/ 下实际存在的第三方目录 ==="
+          ls package/ | grep -iE "openclash|passwall|aurora|vantage|linkease|ddns-go|diskman|athena-led|store" || echo "NONE IN package/"
+          echo "=== .config 中已选中的第三方包 ==="
+          grep -oE "CONFIG_PACKAGE_(luci-(app|theme)-[a-z0-9-]+|linkease|athena-led)=y" .config || echo "NONE SELECTED"
 
       - name: Custom Settings
         run: |
@@ -203,19 +249,20 @@ jobs:
             cat $GITHUB_WORKSPACE/Config/$WRT_CONFIG.txt $GITHUB_WORKSPACE/Config/GENERAL.txt >> .config
           fi
 
-          $GITHUB_WORKSPACE/Scripts/Settings.sh
+          # 手动包调整：追加或覆盖对应 CONFIG_PACKAGE 开关
+          if [ -n "$WRT_PACKAGE" ]; then
+            printf '%s\n' "$WRT_PACKAGE" >> .config
+          fi
 
-          make defconfig -j$(nproc) && make clean -j$(nproc)
-
-      # ===== 禁止 Settings.sh 在编译期回写覆盖 WIFI 名称/密码 =====
-      - name: Prevent wireless overwrite by Settings.sh
-        run: |
+          # 无线防覆盖必须在本步骤之前/之中生效；Settings.sh 跑完后不再回写无线
           if [ -f "$GITHUB_WORKSPACE/Scripts/Settings.sh" ]; then
             sed -i '/set-wireless.sh/d' "$GITHUB_WORKSPACE/Scripts/Settings.sh"
             echo "Disabled automatic wireless SSID/KEY overwrite."
-          else
-            echo "Settings.sh not found, skipping wireless protection."
           fi
+
+          $GITHUB_WORKSPACE/Scripts/Settings.sh
+
+          make defconfig -j$(nproc) && make clean -j$(nproc)
 
       - name: Download Packages
         if: env.WRT_TEST != 'true'
@@ -245,7 +292,7 @@ jobs:
 
       - name: Package Firmware
         run: |
-          cd ./wrt/ && mkdir ./upload/
+          cd ./wrt/ && mkdir -p ./upload/
 
           cp -f ./.config ./upload/Config-"$WRT_CONFIG"-"$WRT_INFO"-"$WRT_BRANCH"-"$WRT_DATE".txt
 
@@ -256,10 +303,10 @@ jobs:
             find ./bin/targets/ -iregex ".*\(buildinfo\|json\|sha256sums\|packages\)$" -exec rm -rf {} +
 
             for FILE in $(find ./bin/targets/ -type f -iname "*$WRT_TARGET*") ; do
-              EXT=$(basename $FILE | cut -d '.' -f 2-)
-              NAME=$(basename $FILE | cut -d '.' -f 1 | grep -io "\($WRT_TARGET\).*")
+              EXT=$(basename "$FILE" | cut -d '.' -f 2-)
+              NAME=$(basename "$FILE" | cut -d '.' -f 1 | grep -io "\($WRT_TARGET\).*")
               NEW_FILE="$NAME"-"$WRT_INFO"-"$WRT_BRANCH"-"$WRT_WIFI"-"$WRT_DATE"."$EXT"
-              mv -f $FILE ./upload/$NEW_FILE
+              mv -f "$FILE" ./upload/"$NEW_FILE"
             done
 
             find ./bin/targets/ -type f -exec mv -f {} ./upload/ \;
